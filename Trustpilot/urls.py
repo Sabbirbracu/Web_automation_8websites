@@ -31,7 +31,7 @@ json_file_path = '/Users/sabbirahmad/Trustpilot/categories.json'
 # Initialize Chrome web driver with existing user profile
 chrome_options = Options()
 chrome_options.add_argument("/Users/sabbirahmad/Library/Application Support/Google/Chrome/Default")  # Change to your Chrome profile path
-chrome_options.add_argument("--headless")  # Optional: Run Chrome in headless mode, i.e., without a UI
+# chrome_options.add_argument("--headless")  # Optional: Run Chrome in headless mode, i.e., without a UI
 service = Service(webdriver_path)
 driver = webdriver.Chrome(service=service, options=chrome_options)
 
@@ -91,7 +91,7 @@ def main(driver, sub_category, location, Rattings):
     driver.get(url)
 
     # Wait for the main content to load
-    wait = WebDriverWait(driver, 20)
+    wait = WebDriverWait(driver, 5)
     try:
         wait.until(EC.presence_of_element_located((By.XPATH, '//div[@class="styles_main__XgQiu"]')))
         print(f"Main content loaded for {sub_category}.")
@@ -116,7 +116,7 @@ def main(driver, sub_category, location, Rattings):
                 ActionChains(driver).move_to_element(pagination_button).click().perform()
 
                 # Wait for the next page to load
-                time.sleep(10)
+                time.sleep(5)
             except Exception as e:
                 print(f"Error clicking pagination button: {e}")
                 break
@@ -150,8 +150,7 @@ def main(driver, sub_category, location, Rattings):
     except subprocess.CalledProcessError as e:
         print(f"Error calling details.py: {e}")
 
-# Iterate through each sub-category in the categories list
-location = 'Berlin'  # Assuming it's always Berlin
+location = '' 
 Ratting = "3.0"
 for sub_category in categories:
     main(driver, sub_category, location, Ratting)
