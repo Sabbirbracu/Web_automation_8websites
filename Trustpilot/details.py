@@ -40,7 +40,7 @@ source_name = sys.argv[2]
 
 table_name = "Scrapped_Data"
 chrome_options = Options()
-# chrome_options.add_argument("--headless")  
+chrome_options.add_argument("--headless")  
 service = Service(webdriver_path)
 driver = webdriver.Chrome(service=service, options=chrome_options)
 
