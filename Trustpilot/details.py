@@ -14,6 +14,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from mysql.connector import errorcode
 from bs4 import BeautifulSoup
 import requests
+from selenium.common.exceptions import StaleElementReferenceException
 
 # Setup logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -38,7 +39,7 @@ source = sys.argv[3]
 category = sys.argv[4]
 source_name = sys.argv[2]
 
-table_name = "Scrapped_Data"
+table_name = "Scrapped_Dkyyk"
 chrome_options = Options()
 chrome_options.add_argument("--headless")  
 service = Service(webdriver_path)
@@ -49,7 +50,7 @@ with open(csv_input_file_path, mode='r') as file:
     next(csv_reader)  
     links = list(csv_reader)
 
-wait = WebDriverWait(driver, 10)
+wait = WebDriverWait(driver, 4)
 
 def create_table(cursor, table_name):
     create_table_query = f"""
@@ -119,21 +120,21 @@ def reconnect_mysql(connection, cursor):
 def is_pagination_visible(driver):
     try:
         pagination = driver.find_element(By.XPATH, '//div[@class="styles_pagination__6VmQv"]/nav[@aria-label="Pagination"]/a[@name="pagination-button-next"]')
-        return pagination.is_displayed()
+        return pagination.is_displayed() and pagination.is_enabled()
     except:
         return False
 
 def is_pagination_button_interactable(driver):
     try:
         pagination_button = driver.find_element(By.XPATH, '//div[@class="styles_pagination__6VmQv"]/nav[@aria-label="Pagination"]/a[@name="pagination-button-next"]')
-        return pagination_button.is_enabled() and pagination_button.get_attribute("aria-disabled") != "true"
-    except:
-        return False
-
-def is_all_reviews(driver):
-    try:
-        button = driver.find_element(By.XPATH, '//a[@class="link_internal__7XN06 button_button__T34Lr button_l__mm_bi button_appearance-secondary__VUFHU link_button___108l styles_link__0RbL4 styles_loadMoreLanguages__wonXg"]')
-        return button.is_displayed()
+        if pagination_button.get_attribute("aria-disabled") == "true":
+            logger.info("Pagination is end")
+            return False
+        elif pagination_button.get_attribute("data-pagination-button-next-link") == "true":
+            logger.info("Next page is available")
+            return True
+        else:
+            return False
     except:
         return False
 
@@ -194,37 +195,51 @@ def extract_reviews_with_bs(driver,company_name, company_link, phone_num, avg_ra
 
 def handle_pagination(driver, company_name, company_link, phone_num, avg_rating, Source_Name, source, category, cursor, table_name):
     all_reviews = []
-    if is_all_reviews(driver):
-            button = driver.find_element(By.XPATH, '//a[@class="link_internal__7XN06 button_button__T34Lr button_l__mm_bi button_appearance-secondary__VUFHU link_button___108l styles_link__0RbL4 styles_loadMoreLanguages__wonXg"]')
-            button.click()
-            logger.info("Clicked the all review button")
-            time.sleep(5)
-    else:
-        logging.info("No All review button found.")
+
+    try:
+        all_review_button = wait.until(EC.element_to_be_clickable((By.XPATH, '//a[@class="link_internal__7XN06 button_button__T34Lr button_l__mm_bi button_appearance-secondary__VUFHU link_button___108l styles_link__0RbL4 styles_loadMoreLanguages__wonXg"]')))
+        all_review_button.click()
+        logger.info("Clicked all reviews button")
+        time.sleep(2)
+    except Exception as e:
+        logger.info("All reviews button not found or not clickable: {}".format(e))
 
     while True:
-        reviews = extract_reviews_with_bs(driver,company_name, company_link, phone_num, avg_rating, Source_Name, source, category, cursor, table_name)
+        reviews = extract_reviews_with_bs(driver, company_name, company_link, phone_num, avg_rating, Source_Name, source, category, cursor, table_name)
         all_reviews.extend(reviews)
-        driver.find_element(By.TAG_NAME, 'body').send_keys(Keys.PAGE_DOWN)
-        time.sleep(3)
-        driver.find_element(By.TAG_NAME, 'body').send_keys(Keys.PAGE_DOWN)
-        time.sleep(3)
 
         try:
             if is_pagination_visible(driver) and is_pagination_button_interactable(driver):
                 logger.info("Pagination button found and interactable. Clicking it.")
                 try:
-                    pagination_button = wait.until(EC.element_to_be_clickable((By.XPATH, '//a[@name="pagination-button-next"]')))
-                    pagination_button.click()
-                    time.sleep(5)
-                except:
-                    break
+                    pagination_button = wait.until(EC.element_to_be_clickable((By.XPATH, "//a[@name='pagination-button-next']")))
+                    
+                    # Scroll to the pagination button to ensure it's in view
+                    driver.execute_script("arguments[0].scrollIntoView(true);", pagination_button)
 
+                    # Attempt to click using JavaScript
+                    try:
+                        driver.execute_script("arguments[0].click();", pagination_button)
+                        logger.info("Clicked the pagination button")
+                        time.sleep(2)
+                    except StaleElementReferenceException as e:
+                        logger.error("Pagination button became stale. Re-finding the element.")
+                        pagination_button = driver.find_element(By.XPATH, "//a[@name='pagination-button-next']")
+                        driver.execute_script("arguments[0].click();", pagination_button)
+                        logger.info("Clicked the pagination button after re-finding")
+                        time.sleep(2)
+                except Exception as e:
+                    logger.error("Pagination button not clicked. Exception: {}".format(e))
+                    # Optionally save a screenshot for debugging
+                    driver.save_screenshot('pagination_error.png')
+                    break
+            else:
+                logger.info("No more pages to paginate.")
+                break
         except Exception as e:
-            logger.info(f"No more pages found: {e}")
+            logger.info("No more pages found or an error occurred: {}".format(e))
             break
 
-    
     return all_reviews
 
 connection = None
