@@ -12,6 +12,8 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from mysql.connector import errorcode
+from bs4 import BeautifulSoup
+import requests
 
 # Setup logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -38,7 +40,7 @@ source_name = sys.argv[2]
 
 table_name = "Scrapped_Data"
 chrome_options = Options()
-chrome_options.add_argument("--headless")  
+# chrome_options.add_argument("--headless")  
 service = Service(webdriver_path)
 driver = webdriver.Chrome(service=service, options=chrome_options)
 
@@ -47,7 +49,7 @@ with open(csv_input_file_path, mode='r') as file:
     next(csv_reader)  
     links = list(csv_reader)
 
-wait = WebDriverWait(driver, 20)
+wait = WebDriverWait(driver, 10)
 
 def create_table(cursor, table_name):
     create_table_query = f"""
@@ -130,28 +132,29 @@ def is_pagination_button_interactable(driver):
 
 def is_all_reviews(driver):
     try:
-        button = driver.find_element(By.XPATH, '//a[@name="show-all-reviews"]')
+        button = driver.find_element(By.XPATH, '//a[@class="link_internal__7XN06 button_button__T34Lr button_l__mm_bi button_appearance-secondary__VUFHU link_button___108l styles_link__0RbL4 styles_loadMoreLanguages__wonXg"]')
         return button.is_displayed()
     except:
         return False
 
-def extract_reviews(driver, company_name, company_link, phone_num, avg_rating, Source_Name, source, category, cursor, table_name):
+def extract_reviews_with_bs(driver,company_name, company_link, phone_num, avg_rating, Source_Name, source, category, cursor, table_name):
     reviews_data = []
     try:
-        time.sleep(5)
-        review_elements = driver.find_elements(By.XPATH, '//div[@class="styles_cardWrapper__LcCPA styles_show__HUXRb styles_reviewCard__9HxJJ"]')
+        soup = BeautifulSoup(driver.page_source, 'html.parser')
+        review_elements = soup.find_all('div', class_='styles_cardWrapper__LcCPA styles_show__HUXRb styles_reviewCard__9HxJJ')
+        
         for review in review_elements:
             try:
-                reviewer_name = review.find_element(By.XPATH, './/div[@class="styles_consumerDetailsWrapper__p2wdr"]/a[@name="consumer-profile"]/span').text
+                reviewer_name = review.find('div', class_='styles_consumerDetailsWrapper__p2wdr').find('a', {'name': 'consumer-profile'}).span.text.strip()
                 logger.info(f"Reviewer name: {reviewer_name}")
-            except Exception as e:
+            except AttributeError as e:
                 reviewer_name = "N/A"
                 logger.error(f"Reviewer name not found: {e}")
 
             try:
-                review_date = review.find_element(By.XPATH, './/div[@class= "typography_body-m__xgxZ_ typography_appearance-subtle__8_H2l styles_datesWrapper__RCEKH"]//time').text
+                review_date = review.find('div', class_='typography_body-m__xgxZ_ typography_appearance-subtle__8_H2l styles_datesWrapper__RCEKH').time.text.strip()
                 logger.info(f"Review date: {review_date}")
-            except Exception as e:
+            except AttributeError as e:
                 review_date = "N/A"
                 logger.error(f"Review date not found: {e}")
 
@@ -160,24 +163,24 @@ def extract_reviews(driver, company_name, company_link, phone_num, avg_rating, S
                 continue
 
             try:
-                review_star_elem = review.find_element(By.XPATH, './/div[@class="star-rating_starRating__4rrcf star-rating_medium__iN6Ty"]/img').get_attribute('alt')
-                get_review_star = review_star_elem.split()
-                review_star = get_review_star[1]
+                review_star_elem = review.find('div', class_='star-rating_starRating__4rrcf star-rating_medium__iN6Ty').img['alt']
+                review_star = review_star_elem.split()[1]
                 logger.info(f"Review star rating: {review_star}")
-            except Exception as e:
+            except AttributeError as e:
                 review_star = "N/A"
                 logger.error(f"Review star not found: {e}")
 
             try:
-                review_description = review.find_element(By.XPATH, './/div[@class="styles_reviewContent__0Q2Tg"]/p[@class="typography_body-l__KUYFJ typography_appearance-default__AAY17 typography_color-black__5LYEn"]').text
-                logging.info("Got the review description")
-            except Exception as e:
+                review_description = review.find('div', class_='styles_reviewContent__0Q2Tg').p.text.strip()
+                logger.info("Got the review description")
+            except AttributeError as e:
                 review_description = "N/A"
-                logging.info("Review Description Not Found")
+                logger.info("Review Description Not Found")
 
-            reviews_data.append((company_name, company_link, reviewer_name, review_date, review_star, review_description, phone_num, avg_rating,Source_Name, source, category))
+            reviews_data.append((company_name, company_link, reviewer_name, review_date, review_star, review_description, phone_num, avg_rating, Source_Name, source, category))
+        
         logger.info(f"Extracted {len(reviews_data)} reviews.")
-
+        
         if len(reviews_data) == 0:
             reviewer_name = "N/A"
             review_date = "N/A"
@@ -186,37 +189,42 @@ def extract_reviews(driver, company_name, company_link, phone_num, avg_rating, S
             reviews_data.append((company_name, company_link, reviewer_name, review_date, review_star, review_description, phone_num, avg_rating,Source_Name, source, category))
     except Exception as e:
         logger.error(f"Error finding review elements: {e}")
+    
     return reviews_data
 
-def handle_pagination(driver, company_name, company_link, phone_num, avg_rating,Source_Name, source, category, cursor, table_name):
+def handle_pagination(driver, company_name, company_link, phone_num, avg_rating, Source_Name, source, category, cursor, table_name):
     all_reviews = []
+    if is_all_reviews(driver):
+            button = driver.find_element(By.XPATH, '//a[@class="link_internal__7XN06 button_button__T34Lr button_l__mm_bi button_appearance-secondary__VUFHU link_button___108l styles_link__0RbL4 styles_loadMoreLanguages__wonXg"]')
+            button.click()
+            logger.info("Clicked the all review button")
+            time.sleep(5)
+    else:
+        logging.info("No All review button found.")
+
     while True:
-        reviews = extract_reviews(driver, company_name, company_link, phone_num, avg_rating,Source_Name, source, category, cursor, table_name)
+        reviews = extract_reviews_with_bs(driver,company_name, company_link, phone_num, avg_rating, Source_Name, source, category, cursor, table_name)
         all_reviews.extend(reviews)
         driver.find_element(By.TAG_NAME, 'body').send_keys(Keys.PAGE_DOWN)
-        time.sleep(4)
+        time.sleep(3)
         driver.find_element(By.TAG_NAME, 'body').send_keys(Keys.PAGE_DOWN)
         time.sleep(3)
 
         try:
             if is_pagination_visible(driver) and is_pagination_button_interactable(driver):
-                print("Pagination button found and interactable. Clicking it.")
+                logger.info("Pagination button found and interactable. Clicking it.")
                 try:
                     pagination_button = wait.until(EC.element_to_be_clickable((By.XPATH, '//a[@name="pagination-button-next"]')))
                     pagination_button.click()
-                    time.sleep(7)
+                    time.sleep(5)
                 except:
                     break
-            else:
-                if is_all_reviews(driver):
-                    button = driver.find_element(By.XPATH, '//a[@name="show-all-reviews"]')
-                    button.click()
-                    time.sleep(6)
-                else:
-                    break
+
         except Exception as e:
             logger.info(f"No more pages found: {e}")
             break
+
+    
     return all_reviews
 
 connection = None
@@ -240,31 +248,23 @@ try:
             phone_num = "N/A"
             try:
                 phone_num = driver.find_element(By.XPATH, '//address/ul/li[2]/a').text
-                print(f"phone num is {phone_num}")
+                logger.info(f"Phone number found: {phone_num}")
+            except Exception as e:
+                logger.info("Phone number not found.")
 
-                pass
-            except:
-                logging.info("Phone num did not found")
-
-            
             avg_rating = "N/A"
             try:
-                avg_rating_element = driver.find_element(By.XPATH, '//span[@class = "typography_heading-m__T_L_X typography_appearance-default__AAY17"]')
-                avg_rating = avg_rating_element.text
+                avg_rating_element = driver.find_element(By.XPATH, '//span[@class="typography_heading-m__T_L_X typography_appearance-default__AAY17"]')
+                avg_rating = avg_rating_element.text.strip()
                 logger.info(f'Average rating is {avg_rating}')
             except Exception as e:
-                if driver.find_element(By.XPATH, '//p[@class = "typography_body-l__KUYFJ typography_appearance-default__AAY17"]').text == "0 total":
+                if driver.find_element(By.XPATH, '//p[@class="typography_body-l__KUYFJ typography_appearance-default__AAY17"]').text.strip() == "0 total":
                     avg_rating = "0"
                 else:
                     logger.error(f"Average rating not found: {e}")
 
-            driver.find_element(By.TAG_NAME, 'body').send_keys(Keys.PAGE_DOWN)
-            time.sleep(3)
-            driver.find_element(By.TAG_NAME, 'body').send_keys(Keys.PAGE_DOWN)
-            time.sleep(3)
+            reviews = handle_pagination(driver, name, link, phone_num, avg_rating, source_name, source, category, cursor, table_name)
 
-            reviews = handle_pagination(driver, name, link, phone_num, avg_rating,source_name, source, category, cursor, table_name)
-            
             for review in reviews:
                 insert_review_data(cursor, table_name, review)
             
