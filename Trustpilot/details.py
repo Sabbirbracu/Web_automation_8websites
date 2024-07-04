@@ -16,18 +16,19 @@ from bs4 import BeautifulSoup
 import requests
 from selenium.common.exceptions import StaleElementReferenceException
 
-# Setup logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger()
 
-mysql_config = {
-    'user': 'root',
-    'password': 'EasyMove2024',
-    'host': 'localhost',
-    'database': 'Scrapping',
-    'connect_timeout': 60,
-    'connection_timeout': 60
-}
+# PLease input the databse configuration here
+
+# mysql_config = {
+#     'user': 'root',
+#     'password': 'EasyMove2024',
+#     'host': 'localhost',
+#     'database': 'Scrapping',
+#     'connect_timeout': 60,
+#     'connection_timeout': 60
+# }
 
 webdriver_path = '/Users/sabbirahmad/Desktop/chromedriver'
 
