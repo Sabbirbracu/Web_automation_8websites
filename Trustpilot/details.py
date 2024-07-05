@@ -1,7 +1,6 @@
 import csv
 import logging
 import time
-import mysql.connector
 import sys
 import os
 from selenium import webdriver
@@ -11,24 +10,13 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from mysql.connector import errorcode
 from bs4 import BeautifulSoup
 import requests
 from selenium.common.exceptions import StaleElementReferenceException
 
+# Setup logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger()
-
-# PLease input the databse configuration here
-
-# mysql_config = {
-#     'user': 'root',
-#     'password': 'EasyMove2024',
-#     'host': 'localhost',
-#     'database': 'Scrapping',
-#     'connect_timeout': 60,
-#     'connection_timeout': 60
-# }
 
 webdriver_path = '/Users/sabbirahmad/Desktop/chromedriver'
 
@@ -40,7 +28,6 @@ source = sys.argv[3]
 category = sys.argv[4]
 source_name = sys.argv[2]
 
-table_name = "Scrapped_Dkyyk"
 chrome_options = Options()
 chrome_options.add_argument("--headless")  
 service = Service(webdriver_path)
@@ -52,71 +39,6 @@ with open(csv_input_file_path, mode='r') as file:
     links = list(csv_reader)
 
 wait = WebDriverWait(driver, 4)
-
-def create_table(cursor, table_name):
-    create_table_query = f"""
-    CREATE TABLE IF NOT EXISTS `{table_name}` (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        Company_name VARCHAR(255),
-        Company_link VARCHAR(1000),
-        reviewer_name VARCHAR(255),
-        review_date VARCHAR(50),
-        review_star VARCHAR(50),
-        review_description TEXT,
-        phone_num VARCHAR(50),
-        avg_rating VARCHAR(50),
-        Source_Name VARCHAR(50),
-        Source_Website VARCHAR(255),
-        Company_category VARCHAR(100)
-    );
-    """
-    try:
-        cursor.execute(create_table_query)
-        logger.info(f"Table `{table_name}` ensured to exist.")
-    except mysql.connector.Error as err:
-        logger.error(f"Error creating table: {err}")
-
-def review_exists(cursor, table_name, reviewer_name, review_date):
-    query = f"""
-    SELECT COUNT(*) FROM `{table_name}` WHERE reviewer_name = %s AND review_date = %s;
-    """
-    try:
-        cursor.execute(query, (reviewer_name, review_date))
-        result = cursor.fetchone()
-        return result[0] > 0
-    except mysql.connector.Error as err:
-        if err.errno in [errorcode.CR_SERVER_LOST, errorcode.CR_SERVER_GONE_ERROR]:
-            logger.error(f"Lost connection to MySQL server. Attempting to reconnect: {err}")
-            reconnect_mysql(connection, cursor)
-            cursor.execute(query, (reviewer_name, review_date))
-            result = cursor.fetchone()
-            return result[0] > 0
-        else:
-            logger.error(f"Error checking review existence: {err}")
-            return False
-
-def insert_review_data(cursor, table_name, data):
-    insert_query = f"""
-    INSERT INTO `{table_name}` (Company_name, Company_link, reviewer_name, review_date, review_star, review_description, phone_num, avg_rating,Source_Name, Source_Website, Company_category)
-    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);
-    """
-    try:
-        cursor.execute(insert_query, data)
-    except mysql.connector.Error as err:
-        if err.errno in [errorcode.CR_SERVER_LOST, errorcode.CR_SERVER_GONE_ERROR]:
-            logger.error(f"Lost connection to MySQL server. Attempting to reconnect: {err}")
-            reconnect_mysql(connection, cursor)
-            cursor.execute(insert_query, data)
-        else:
-            logger.error(f"Error inserting data: {err}")
-
-def reconnect_mysql(connection, cursor):
-    try:
-        connection.ping(reconnect=True, attempts=3, delay=5)
-        logger.info("Reconnected to MySQL server.")
-    except mysql.connector.Error as err:
-        logger.error(f"Failed to reconnect to MySQL server: {err}")
-        sys.exit(1)
 
 def is_pagination_visible(driver):
     try:
@@ -139,7 +61,7 @@ def is_pagination_button_interactable(driver):
     except:
         return False
 
-def extract_reviews_with_bs(driver,company_name, company_link, phone_num, avg_rating, Source_Name, source, category, cursor, table_name):
+def extract_reviews_with_bs(driver,company_name, company_link, phone_num, avg_rating, Source_Name, source, category):
     reviews_data = []
     try:
         soup = BeautifulSoup(driver.page_source, 'html.parser')
@@ -159,10 +81,6 @@ def extract_reviews_with_bs(driver,company_name, company_link, phone_num, avg_ra
             except AttributeError as e:
                 review_date = "N/A"
                 logger.error(f"Review date not found: {e}")
-
-            if review_exists(cursor, table_name, reviewer_name, review_date):
-                logger.info(f"Review by {reviewer_name} on {review_date} already exists. Skipping.")
-                continue
 
             try:
                 review_star_elem = review.find('div', class_='star-rating_starRating__4rrcf star-rating_medium__iN6Ty').img['alt']
@@ -194,7 +112,7 @@ def extract_reviews_with_bs(driver,company_name, company_link, phone_num, avg_ra
     
     return reviews_data
 
-def handle_pagination(driver, company_name, company_link, phone_num, avg_rating, Source_Name, source, category, cursor, table_name):
+def handle_pagination(driver, company_name, company_link, phone_num, avg_rating, Source_Name, source, category):
     all_reviews = []
 
     try:
@@ -206,7 +124,7 @@ def handle_pagination(driver, company_name, company_link, phone_num, avg_rating,
         logger.info("All reviews button not found or not clickable: {}".format(e))
 
     while True:
-        reviews = extract_reviews_with_bs(driver, company_name, company_link, phone_num, avg_rating, Source_Name, source, category, cursor, table_name)
+        reviews = extract_reviews_with_bs(driver, company_name, company_link, phone_num, avg_rating, Source_Name, source, category)
         all_reviews.extend(reviews)
 
         try:
@@ -215,10 +133,8 @@ def handle_pagination(driver, company_name, company_link, phone_num, avg_rating,
                 try:
                     pagination_button = wait.until(EC.element_to_be_clickable((By.XPATH, "//a[@name='pagination-button-next']")))
                     
-                    # Scroll to the pagination button to ensure it's in view
                     driver.execute_script("arguments[0].scrollIntoView(true);", pagination_button)
-
-                    # Attempt to click using JavaScript
+                    
                     try:
                         driver.execute_script("arguments[0].click();", pagination_button)
                         logger.info("Clicked the pagination button")
@@ -231,7 +147,6 @@ def handle_pagination(driver, company_name, company_link, phone_num, avg_rating,
                         time.sleep(2)
                 except Exception as e:
                     logger.error("Pagination button not clicked. Exception: {}".format(e))
-                    # Optionally save a screenshot for debugging
                     driver.save_screenshot('pagination_error.png')
                     break
             else:
@@ -243,64 +158,39 @@ def handle_pagination(driver, company_name, company_link, phone_num, avg_rating,
 
     return all_reviews
 
-connection = None
-cursor = None
+for name, link in links:
+    logger.info(f"Opening link for: {name}")
 
-try:
-    connection = mysql.connector.connect(**mysql_config)
-    cursor = connection.cursor()
-    logger.info("Connected to MySQL database.")
+    driver.get(link)
+    try:
+        wait.until(EC.presence_of_element_located((By.XPATH, '//section[@class="styles_reviewsContainer__3_GQw"]')))
+        logger.info("Reviews section loaded.")
 
-    create_table(cursor, table_name)
-
-    for name, link in links:
-        logger.info(f"Opening link for: {name}")
-
-        driver.get(link)
+        phone_num = "N/A"
         try:
-            wait.until(EC.presence_of_element_located((By.XPATH, '//section[@class="styles_reviewsContainer__3_GQw"]')))
-            logger.info("Reviews section loaded.")
-
-            phone_num = "N/A"
-            try:
-                phone_num = driver.find_element(By.XPATH, '//address/ul/li[2]/a').text
-                logger.info(f"Phone number found: {phone_num}")
-            except Exception as e:
-                logger.info("Phone number not found.")
-
-            avg_rating = "N/A"
-            try:
-                avg_rating_element = driver.find_element(By.XPATH, '//span[@class="typography_heading-m__T_L_X typography_appearance-default__AAY17"]')
-                avg_rating = avg_rating_element.text.strip()
-                logger.info(f'Average rating is {avg_rating}')
-            except Exception as e:
-                if driver.find_element(By.XPATH, '//p[@class="typography_body-l__KUYFJ typography_appearance-default__AAY17"]').text.strip() == "0 total":
-                    avg_rating = "0"
-                else:
-                    logger.error(f"Average rating not found: {e}")
-
-            reviews = handle_pagination(driver, name, link, phone_num, avg_rating, source_name, source, category, cursor, table_name)
-
-            for review in reviews:
-                insert_review_data(cursor, table_name, review)
-            
-            connection.commit()
-
+            phone_num = driver.find_element(By.XPATH, '//address/ul/li[2]/a').text
+            logger.info(f"Phone number found: {phone_num}")
         except Exception as e:
-            logger.error(f"Error processing link {link}: {e}")
-            continue
+            logger.info("Phone number not found.")
 
-except mysql.connector.Error as err:
-    if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
-        logger.error("Something is wrong with your user name or password.")
-    elif err.errno == errorcode.ER_BAD_DB_ERROR:
-        logger.error("Database does not exist.")
-    else:
-        logger.error(err)
-finally:
-    if cursor:
-        cursor.close()
-    if connection:
-        connection.close()
-    logger.info("MySQL connection closed.")
-    driver.quit()
+        avg_rating = "N/A"
+        try:
+            avg_rating_element = driver.find_element(By.XPATH, '//span[@class="typography_heading-m__T_L_X typography_appearance-default__AAY17"]')
+            avg_rating = avg_rating_element.text.strip()
+            logger.info(f'Average rating is {avg_rating}')
+        except Exception as e:
+            if driver.find_element(By.XPATH, '//p[@class="typography_body-l__KUYFJ typography_appearance-default__AAY17"]').text.strip() == "0 total":
+                avg_rating = "0"
+            else:
+                logger.error(f"Average rating not found: {e}")
+
+        reviews = handle_pagination(driver, name, link, phone_num, avg_rating, source_name, source, category)
+
+        for review in reviews:
+            print(review)
+
+    except Exception as e:
+        logger.error(f"Error processing link {link}: {e}")
+        continue
+
+driver.quit()
