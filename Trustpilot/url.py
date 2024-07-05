@@ -14,7 +14,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.keys import Keys    
 webdriver_path = '/Users/sabbirahmad/Desktop/chromedriver'
 category = 'Salons_&_Clinics'
-location = 'Berlin'
+location = ''
 source = 'https://www.trustpilot.com'
 source_name = "Trustpilot"
 csv_file_path = '/Users/sabbirahmad/Trustpilot/Pet_Services.csv'
