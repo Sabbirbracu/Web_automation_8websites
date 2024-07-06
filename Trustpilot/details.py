@@ -13,12 +13,20 @@ from selenium.webdriver.support import expected_conditions as EC
 from bs4 import BeautifulSoup
 import requests
 from selenium.common.exceptions import StaleElementReferenceException
+from dotenv import load_dotenv
+import os
+
+# Load environment variables from .env file
+load_dotenv()
+
+
 
 # Setup logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger()
 
-webdriver_path = '/Users/sabbirahmad/Desktop/chromedriver'
+# Path to your webdriver executable
+webdriver_path = os.getenv("WEBDRIVER_PATH")
 
 if len(sys.argv) < 5:
     logger.error("CSV file path not provided.")
@@ -29,7 +37,7 @@ category = sys.argv[4]
 source_name = sys.argv[2]
 
 chrome_options = Options()
-chrome_options.add_argument("--headless")  
+# chrome_options.add_argument("--headless")  
 service = Service(webdriver_path)
 driver = webdriver.Chrome(service=service, options=chrome_options)
 
@@ -187,7 +195,9 @@ for name, link in links:
         reviews = handle_pagination(driver, name, link, phone_num, avg_rating, source_name, source, category)
 
         for review in reviews:
-            print(review)
+            logger.info("**************")
+            logger.info(review)
+            logger.info("**************")
 
     except Exception as e:
         logger.error(f"Error processing link {link}: {e}")

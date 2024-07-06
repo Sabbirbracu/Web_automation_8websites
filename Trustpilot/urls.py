@@ -13,8 +13,15 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.action_chains import ActionChains
 logger = logging.getLogger()
+
+from dotenv import load_dotenv
+import os
+
+# Load environment variables from .env file
+load_dotenv()
+
 # Path to your webdriver executable
-webdriver_path = '/Users/sabbirahmad/Desktop/chromedriver'
+webdriver_path = os.getenv("WEBDRIVER_PATH")
 
 # Function to generate the Trustpilot search URL
 def generate_trustpilot_url(category, location, Rattings):
@@ -26,12 +33,12 @@ def generate_trustpilot_url(category, location, Rattings):
     return f"{base_url}{category_formatted}?country={country_code}&trustscore={Rattings}"
 
 # Path to the categories JSON file
-json_file_path = '/Users/sabbirahmad/Trustpilot/categories.json'
+json_file_path = os.getenv("CATEGORY_JSON_PATH")
 
 # Initialize Chrome web driver with existing user profile
 chrome_options = Options()
-chrome_options.add_argument("/Users/sabbirahmad/Library/Application Support/Google/Chrome/Default")  # Change to your Chrome profile path
-chrome_options.add_argument("--headless")  # Optional: Run Chrome in headless mode, i.e., without a UI
+# chrome_options.add_argument("/Users/sabbirahmad/Library/Application Support/Google/Chrome/Default")  # Change to your Chrome profile path
+# chrome_options.add_argument("--headless")  # Optional: Run Chrome in headless mode, i.e., without a UI
 service = Service(webdriver_path)
 driver = webdriver.Chrome(service=service, options=chrome_options)
 
@@ -133,9 +140,18 @@ def main(driver, sub_category, location, Rattings):
     # Convert the dictionary to a list of tuples
     all_business_data_list = list(all_business_data.items())
     print(f"Total unique business items extracted: {len(all_business_data_list)}")
+
+    csv_file_path = os.getenv("CSV_FILE_PATH")  # Assuming this returns a valid path as a string
+    sub_category = "example sub category"
+
+    # Replace spaces with underscores in sub_category
+    sub_category_sanitized = sub_category.replace(' ', '_')
+
+    # Join the paths
+    full_path = os.path.join(csv_file_path, f"{sub_category_sanitized}.csv")
     
     # Save the links and names to a CSV file
-    csv_file_path = f"/Users/sabbirahmad/Trustpilot/{sub_category.replace(' ', '_')}.csv"
+    csv_file_path = full_path
     try:
         with open(csv_file_path, mode='w', newline='') as file:
             writer = csv.writer(file)
@@ -151,7 +167,7 @@ def main(driver, sub_category, location, Rattings):
 
     # Call details.py with the CSV file path
     try:
-        subprocess.run([python_executable, '/Users/sabbirahmad/TrustPilot/details.py', csv_file_path, "Trustpilot", 'https://www.trustpilot.com', sub_category], check=True)
+        subprocess.run([python_executable, os.getenv("DETAIL_PATH"), csv_file_path, "Trustpilot", 'https://www.trustpilot.com', sub_category], check=True)
         print(f"details.py executed successfully with {csv_file_path}")
     except subprocess.CalledProcessError as e:
         print(f"Error calling details.py: {e}")
