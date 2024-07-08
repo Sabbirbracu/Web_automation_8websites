@@ -11,9 +11,10 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.keys import Keys
+import os
 
 # Path to your webdriver executable
-webdriver_path = '/Users/sabbirahmad/Desktop/chromedriver'
+webdriver_path = os.getenv()
 
 # Function to generate the Google Maps search URL
 def generate_google_maps_url(category, location):
