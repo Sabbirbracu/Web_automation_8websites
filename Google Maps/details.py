@@ -17,7 +17,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 logger = logging.getLogger()
 
 # Path to your WebDriver executable
-webdriver_path = '/Users/sabbirahmad/Desktop/chromedriver'
+webdriver_path = os.getenv("WEBDRIVER_PATH")
 
 # Get the CSV file path from the command-line arguments
 if len(sys.argv) < 5:
