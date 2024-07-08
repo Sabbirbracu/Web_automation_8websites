@@ -119,7 +119,7 @@ def main(driver):
     all_business_data_list = list(all_business_data.items())
     print(f"Total unique business items extracted: {len(all_business_data_list)}")
 
-    csv_file_path = os.getenv("CSV_FILE_PATH")  # Assuming this returns a valid path as a string
+    csv_file_path = os.getenv("CSV_FILE_PATH_for_google")  # Assuming this returns a valid path as a string
     sub_category = "example sub category"
 
     # Replace spaces with underscores in sub_category
