@@ -5,13 +5,12 @@ import sys
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 from bs4 import BeautifulSoup
-from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import NoSuchElementException, TimeoutException, ElementNotInteractableException
+from selenium.common.exceptions import NoSuchElementException, TimeoutException, ElementNotInteractableException, StaleElementReferenceException
 
 # Setup logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -51,7 +50,7 @@ def read_csv(file_path):
         return list(csv_reader)
 
 # Initialize WebDriverWait
-wait = WebDriverWait(driver, 2)
+wait = WebDriverWait(driver, 4)
 
 def get_phone_number(driver):
     try:
@@ -74,44 +73,49 @@ def get_average_rating(driver):
 # Function to extract review information from the current page
 def extract_reviews(driver, company_name, company_link, phone_num, avg_rating, source_name, source, category):
     reviews_data = []
-    try:
-        wait = WebDriverWait(driver, 2)
-        
-        # Wait for the reviews to load
-        review_elements = wait.until(EC.presence_of_all_elements_located((By.XPATH, '//div[@class="jftiEf fontBodyMedium "]')))
-        for review in review_elements:
-            try:
-                reviewer_name = review.find_element(By.XPATH, './/div[@class="d4r55 "]').text if review.find_element(By.XPATH, './/div[@class="d4r55 "]') else "N/A"
-                logger.info(f"Reviewer name is {reviewer_name}")
-                review_date = review.find_element(By.XPATH, './/span[@class="rsqaWe"]').text if review.find_element(By.XPATH, './/span[@class="rsqaWe"]') else "N/A"
-                logger.info(f"Review date is {review_date}")
+    retries = 5
+    while retries > 0:
+        try:
+            review_elements = wait.until(EC.presence_of_all_elements_located((By.XPATH, '//div[@class="jftiEf fontBodyMedium "]')))
+            for review in review_elements:
+                try:
+                    reviewer_name = review.find_element(By.XPATH, './/div[@class="d4r55 "]').text if review.find_element(By.XPATH, './/div[@class="d4r55 "]') else "N/A"
+                    logger.info(f"Reviewer name is {reviewer_name}")
+                    review_date = review.find_element(By.XPATH, './/span[@class="rsqaWe"]').text if review.find_element(By.XPATH, './/span[@class="rsqaWe"]') else "N/A"
+                    logger.info(f"Review date is {review_date}")
 
-                review_star_elem = review.find_element(By.XPATH, './/span[@class="kvMYJc"]').get_attribute('aria-label')
-                review_star = review_star_elem.split()[0] if review_star_elem else "N/A"
+                    review_star_elem = review.find_element(By.XPATH, './/span[@class="kvMYJc"]').get_attribute('aria-label')
+                    review_star = review_star_elem.split()[0] if review_star_elem else "N/A"
 
-                review_description = review.find_element(By.XPATH, './/span[@class="wiI7pd"]').text if review.find_element(By.XPATH, './/span[@class="wiI7pd"]') else "N/A"
+                    review_description = review.find_element(By.XPATH, './/span[@class="wiI7pd"]').text if review.find_element(By.XPATH, './/span[@class="wiI7pd"]') else "N/A"
 
-                reviews_data.append((company_name, company_link, reviewer_name, review_date, review_star, review_description, phone_num, avg_rating, source_name, source, category))
-            except NoSuchElementException as e:
-                logger.error(f"Error finding sub-elements in review: {e}")
-            except Exception as e:
-                logger.error(f"Unexpected error during sub-element extraction: {e}")
+                    reviews_data.append((company_name, company_link, reviewer_name, review_date, review_star, review_description, phone_num, avg_rating, source_name, source, category))
+                except StaleElementReferenceException:
+                    logger.warning("Stale element reference, re-finding element.")
+                    retries -= 1
+                    break
+                except NoSuchElementException as e:
+                    logger.error(f"Error finding sub-elements in review: {e}")
+                except Exception as e:
+                    logger.error(f"Unexpected error during sub-element extraction: {e}")
+            else:
+                break  # Break the outer loop if no stale element exception occurs
 
-        logger.info(f"Extracted {len(reviews_data)} reviews.")
-    except TimeoutException as e:
-        logger.error(f"Timeout while waiting for review elements: {e}")
-    except Exception as e:
-        logger.error(f"Unexpected error during review extraction: {e}")
+            logger.info(f"Extracted {len(reviews_data)} reviews.")
+        except TimeoutException as e:
+            logger.error(f"Timeout while waiting for review elements: {e}")
+        except Exception as e:
+            logger.error(f"Unexpected error during review extraction: {e}")
+        retries -= 1
     return reviews_data
 
 def click_reviews_button(driver):
     try:
         # Wait for the reviews button to be clickable
-        reviews_button = WebDriverWait(driver, 1).until(
+        reviews_button = WebDriverWait(driver, 4).until(
             EC.element_to_be_clickable((By.XPATH, '//div[@class="RWPxGd"]/button[2]'))
         )
         driver.execute_script("arguments[0].scrollIntoView();", reviews_button)
-        # time.sleep(2)  # Ensure the element is fully in view
         driver.execute_script("arguments[0].click();", reviews_button)
         logger.info("Clicked on the reviews button.")
         return True
@@ -123,7 +127,6 @@ def click_reviews_button(driver):
 def process_company_link(driver, name, link, source_name, source, category):
     driver.get(link)
     try:
-        wait = WebDriverWait(driver,2)
         wait.until(EC.presence_of_element_located((By.XPATH, '//div[@class="m6QErb WNBkOb XiKgde " and @role="main"]')))
         logger.info("Reviews section loaded.")
         
