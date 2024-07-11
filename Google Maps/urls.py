@@ -22,6 +22,8 @@ def generate_google_maps_url(category, location):
     base_url = 'https://www.google.com/maps/search/'
     query = f"{category} in {location}"
     return f"{base_url}{urllib.parse.quote(query)}/?hl=en"  # Append hl=en to ensure English results
+    
+json_file_path = os.getenv("CATEGORY_JSON_PATH_for_google")
 
 # Set the location
 location = 'Germany'
@@ -29,7 +31,7 @@ source = 'https://www.google.com/maps'
 source_name = "Google Maps"
 
 # Load categories from category.json
-with open('category.json') as f:
+with open(json_file_path) as f:
     data = json.load(f)
     categories = data['Categories']
 
