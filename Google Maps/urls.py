@@ -58,7 +58,7 @@ def scroll_to_end(driver):
         driver.execute_script("arguments[0].scrollTop = arguments[0].scrollHeight", scrollable_div)
         num += 1
         print(f"Scrolled {num} times and it's sleeping.")
-        time.sleep(1.5)  # Give time for new elements to load
+        time.sleep(1.7)  # Give time for new elements to load
         try:
             # Check if the end of the results is reached
             driver.find_element(By.XPATH, '//span[@class="HlvSq"]')
@@ -122,8 +122,19 @@ def main(driver, category):
     all_business_data_list = list(all_business_data.items())
     print(f"Total unique business items extracted: {len(all_business_data_list)}")
 
+    csv_file_path = os.getenv("CSV_FILE_PATH")  # Assuming this returns a valid path as a string
+    sub_category = "example sub category"
+
+    # Replace spaces with underscores in sub_category
+    sub_category_sanitized = sub_category.replace(' ', '_')
+
+    # Join the paths
+    full_path = os.path.join(csv_file_path, f"{sub_category_sanitized}.csv")
+    
     # Save the links and names to a CSV file
-    csv_file_path = f"/Users/sabbirahmad/google maps/{category.replace(' ', '_')} in {location}.csv"
+    csv_file_path = full_path
+
+    # Save the links and names to a CSV file
     try:
         with open(csv_file_path, mode='w', newline='') as file:
             writer = csv.writer(file)
@@ -139,7 +150,7 @@ def main(driver, category):
 
     # Call details.py with the CSV file path
     try:
-        subprocess.run([python_executable, '/Users/sabbirahmad/google maps/details.py', csv_file_path, source_name, source, category], check=True)
+        subprocess.run([python_executable, os.getenv(DETAIL_PATH_for_google), csv_file_path, source_name, source, category], check=True)
         print(f"details.py executed successfully with {csv_file_path}")
     except subprocess.CalledProcessError as e:
         print(f"Error calling details.py: {e}")
