@@ -12,14 +12,14 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import NoSuchElementException, TimeoutException, ElementNotInteractableException, StaleElementReferenceException
+import os
 
-# Setup logging
+
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger()
-# Path to your WebDriver executable
-webdriver_path = '/Users/sabbirahmad/Desktop/chromedriver'
+webdriver_path = os.getenv(WEBDRIVER)
 
-# Get the CSV file path from the command-line arguments
+
 if len(sys.argv) < 5:
     logger.error("CSV file path not provided.")
     sys.exit(1)
@@ -28,7 +28,7 @@ source_name = sys.argv[2]
 source = sys.argv[3]
 category = sys.argv[4]
 
-# Initialize Chrome WebDriver
+
 chrome_options = Options()
 chrome_options.add_argument("--headless")
 chrome_options.add_argument("--disable-gpu")
@@ -39,14 +39,14 @@ chrome_options.add_argument("--remote-debugging-port=9222")
 service = Service(webdriver_path)
 driver = webdriver.Chrome(service=service, options=chrome_options)
 
-# Function to read links from CSV
+
 def read_csv(file_path):
     with open(file_path, mode='r') as file:
         csv_reader = csv.reader(file)
-        next(csv_reader)  # Skip header row
+        next(csv_reader)  
         return list(csv_reader)
 
-# Initialize WebDriverWait
+
 wait = WebDriverWait(driver, 2)
 
 def get_location(driver):
@@ -81,10 +81,10 @@ def extract_reviews(driver, company_name, company_link, phone_num, avg_rating, s
     try:
         wait = WebDriverWait(driver, 2)
         
-        # Wait for the reviews to load
+     
         wait.until(EC.presence_of_all_elements_located((By.XPATH, '//div[@class="jftiEf fontBodyMedium "]')))
 
-        # Get page source and parse it with BeautifulSoup
+        
         page_source = driver.page_source
         soup = BeautifulSoup(page_source, 'html.parser')
         review_elements = soup.find_all('div', class_='jftiEf fontBodyMedium')
@@ -129,12 +129,12 @@ def click_reviews_button(driver, max_retries=3, wait_time=1):
     retries = 0
     while retries < max_retries:
         try:
-            # Wait for the reviews button to be clickable
+            
             reviews_button = WebDriverWait(driver, wait_time).until(
                 EC.element_to_be_clickable((By.XPATH, '//div[@class="RWPxGd"]/button[contains(@aria-label,"Reviews")]'))
             )
             driver.execute_script("arguments[0].scrollIntoView();", reviews_button)
-            # time.sleep(2)  # Ensure the element is fully in view
+            # time.sleep(2)  
             driver.execute_script("arguments[0].click();", reviews_button)
             logger.info("Clicked on the reviews button.")
             return True
@@ -148,7 +148,6 @@ def click_reviews_button(driver, max_retries=3, wait_time=1):
             time.sleep(wait_time)
     return False
 
-# Function to scroll until no more reviews are loaded
 
 def scroll_to_end(driver):
     retry_count = 0
@@ -214,7 +213,7 @@ def scroll_to_end(driver):
                 driver.find_element(By.XPATH, '//div[@class="m6QErb DxyBCb kA9KIf dS8AEf XiKgde "]').send_keys(Keys.PAGE_DOWN)
                 print("scrolled")
                 time.sleep(2)
-                # Give time for new elements to load
+                
                 new_height = driver.execute_script("return arguments[0].scrollHeight", scrollable_div)
 
                 logger.info(f"Scrolled {num} times and sleeping.")
@@ -238,12 +237,11 @@ def scroll_to_end(driver):
                 last_height = new_height
 
             logger.info("Successfully scrolled to end.")
-            return True                                         # Return True on successful scroll
-
+            return True                                         
         except NoSuchElementException:
             retry_count += 1
             logger.error(f"Scroll container not found. Retrying {retry_count}/{max_retries}...")
-            time.sleep(.7)                                      # Increase wait time between retries
+            time.sleep(.7)                                      
             continue
 
         except Exception as e:
@@ -254,23 +252,23 @@ def scroll_to_end(driver):
 
     if retry_count == max_retries:
         logger.error("Failed to find the scrollable container after maximum retries.")
-        return False  # Return False if maximum retries are exhausted
+        return False  
 
-    return False  # Return False in case of any unexpected error
+    return False 
 
-# Function to click the "Lowest rating" sort option
+
 def click_lowest_rating(driver, max_retries=3, delay=2):
     retries = 0
     while retries < max_retries:
         try:
-            # Click the sort button to reveal the dropdown
+            
             sort_button = WebDriverWait(driver, 2).until(
                 EC.presence_of_element_located((By.XPATH, '//button[@aria-label="Sort reviews"]'))
             )
             sort_button.click()
             logger.info("Clicked the sort button.")
             
-            # Click the "Lowest rating" option
+            
             lowest_rating_option = WebDriverWait(driver, 2).until(
                 EC.presence_of_element_located((By.XPATH, '//div[@id="action-menu"]//div[@role="menuitemradio" and .//div[text()="Lowest rating"]]'))
             )
@@ -280,16 +278,16 @@ def click_lowest_rating(driver, max_retries=3, delay=2):
         except (NoSuchElementException, TimeoutException, ElementNotInteractableException, Exception) as e:
             logger.error(f"Error selecting 'Lowest rating' option on attempt {retries + 1} ...")
             retries += 1
-            time.sleep(delay)  # Wait before retrying
+            time.sleep(delay)  
         except StaleElementReferenceException:
             logger.warning("StaleElementReferenceException encountered. Retrying...")
             retries += 1
-            time.sleep(delay)  # Wait before retrying
+            time.sleep(delay) 
             
 
     return False
 
-# Function to process each company link
+
 def process_company_link(driver, name, link, source_name, source, category):
     driver.get(link)
     try:
@@ -314,7 +312,7 @@ def process_company_link(driver, name, link, source_name, source, category):
         avg_rating = get_average_rating(driver)
         logger.info(f"Average rating is {avg_rating}")
 
-        # Attempt to click the reviews button
+        
         clicked = click_reviews_button(driver)
 
         if not clicked:
@@ -347,7 +345,7 @@ def process_company_link(driver, name, link, source_name, source, category):
     except Exception as e:
         logger.error(f"Error processing link {link}: {e}")
 
-# Main function
+
 def main():
     company_links = read_csv(csv_input_file_path)
     for row in company_links:
