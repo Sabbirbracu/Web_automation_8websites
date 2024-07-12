@@ -12,18 +12,15 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.keys import Keys
-import os
 
 # Path to your webdriver executable
-webdriver_path = os.getenv(WEBDRIVER)
+webdriver_path = '/Users/sabbirahmad/Desktop/chromedriver'
 
 # Function to generate the Google Maps search URL
 def generate_google_maps_url(category, location):
     base_url = 'https://www.google.com/maps/search/'
     query = f"{category} in {location}"
     return f"{base_url}{urllib.parse.quote(query)}/?hl=en"  # Append hl=en to ensure English results
-    
-json_file_path = os.getenv("CATEGORY_JSON_PATH_for_google")
 
 # Set the location
 location = 'Germany'
@@ -31,7 +28,7 @@ source = 'https://www.google.com/maps'
 source_name = "Google Maps"
 
 # Load categories from category.json
-with open(json_file_path) as f:
+with open('category.json') as f:
     data = json.load(f)
     categories = data['Categories']
 
@@ -122,19 +119,8 @@ def main(driver, category):
     all_business_data_list = list(all_business_data.items())
     print(f"Total unique business items extracted: {len(all_business_data_list)}")
 
-    csv_file_path = os.getenv("CSV_FILE_PATH")  # Assuming this returns a valid path as a string
-    sub_category = "example sub category"
-
-    # Replace spaces with underscores in sub_category
-    sub_category_sanitized = sub_category.replace(' ', '_')
-
-    # Join the paths
-    full_path = os.path.join(csv_file_path, f"{sub_category_sanitized}.csv")
-    
     # Save the links and names to a CSV file
-    csv_file_path = full_path
-
-    # Save the links and names to a CSV file
+    csv_file_path = f"/Users/sabbirahmad/google maps/{category.replace(' ', '_')} in {location}.csv"
     try:
         with open(csv_file_path, mode='w', newline='') as file:
             writer = csv.writer(file)
@@ -150,7 +136,7 @@ def main(driver, category):
 
     # Call details.py with the CSV file path
     try:
-        subprocess.run([python_executable, os.getenv(DETAIL_PATH_for_google), csv_file_path, source_name, source, category], check=True)
+        subprocess.run([python_executable, '/Users/sabbirahmad/google maps/details.py', csv_file_path, source_name, source, category], check=True)
         print(f"details.py executed successfully with {csv_file_path}")
     except subprocess.CalledProcessError as e:
         print(f"Error calling details.py: {e}")
