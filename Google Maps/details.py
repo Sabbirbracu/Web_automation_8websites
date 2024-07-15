@@ -312,6 +312,7 @@ def process_company_link(driver, name, link, source_name, source, category):
         logger.info(f"Average rating is {avg_rating}")
 
         if phone_num == "N/A":
+            logger.info(f"The company {name} don't have phone num.Closing it....."
             return
 
         clicked = click_reviews_button(driver)
