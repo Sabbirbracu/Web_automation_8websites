@@ -329,6 +329,12 @@ def process_company_link(driver, name, link, source_name, source, category):
         scroll_to_end(driver)
 
         reviews_data = extract_reviews(driver, name, link, phone_num, avg_rating, source_name, source, category)
+
+        if len(reviews_data) == 0:
+            logger.info(f"The company {name} have 0 reviews less than 4 rattings. Closing it .......")
+            return
+            
+        
         for review_data in reviews_data:
             print(review_data)
         logging.info(f"Total review scrapped {len(reviews_data)}")
