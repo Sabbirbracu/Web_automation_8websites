@@ -113,7 +113,8 @@ def extract_reviews_with_bs(driver,company_name, company_link, phone_num, email,
                 review_description = "N/A"
                 logger.info("Review Description Not Found")
 
-            reviews_data.append((company_name, company_link, reviewer_name, reviewer_cc, review_date, review_star, review_description, phone_num, email, location, avg_rating, Source_Name, source, category))
+            city= ""
+            reviews_data.append((company_name, company_link, reviewer_name, reviewer_cc, review_date, review_star, review_description, phone_num, email, location, avg_rating, Source_Name, source, category, city))
         
         logger.info(f"Extracted {len(reviews_data)} reviews.")
         
@@ -123,7 +124,8 @@ def extract_reviews_with_bs(driver,company_name, company_link, phone_num, email,
             review_star = "N/A"
             reviewer_cc = "N/A"
             review_description = "N/A"
-            reviews_data.append((company_name, company_link, reviewer_name, reviewer_cc, review_date, review_star, review_description, phone_num, email, location, avg_rating,Source_Name, source, category))
+            city= ""
+            reviews_data.append((company_name, company_link, reviewer_name, reviewer_cc, review_date, review_star, review_description, phone_num, email, location, avg_rating,Source_Name, source, category, city))
     except Exception as e:
         logger.error(f"Error finding review elements: {e}")
     

@@ -79,7 +79,7 @@ def get_average_rating(driver):
     except NoSuchElementException:
         return "N/A"
 
-def extract_reviews(driver, company_name, company_link, phone_num, location, avg_rating, source_name, source, category):
+def extract_reviews(driver, company_name, company_link, phone_num, location, city, avg_rating, source_name, source, category):
     reviews_data = []
     try:
         wait = WebDriverWait(driver, 2)
@@ -113,7 +113,7 @@ def extract_reviews(driver, company_name, company_link, phone_num, location, avg
                     email = ""
                     reviewer_cc="N/A"
 
-                    reviews_data.append((company_name, company_link, reviewer_name, reviewer_cc, review_date, review_star, review_description, phone_num, email, location, avg_rating, source_name, source, category))
+                    reviews_data.append((company_name, company_link, reviewer_name, reviewer_cc, review_date, review_star, review_description, phone_num, email, location, avg_rating, source_name, source, category, city))
                 else:
                     return reviews_data
 
@@ -305,12 +305,13 @@ def process_company_link(driver, name, link, source_name, source, category):
 
         location = get_location(driver)
         logger.info(f"Location is {location}")
+        city=""
         if location != "N/A":
             splited_loc = (location.split(","))
             if len(splited_loc) == 3:
-                city = splited_loc[1]
+                city = splited_loc[1].strip()
             elif len(splited_loc) > 3:
-                city = splited_loc[2]
+                city = splited_loc[2].strip()
         logger.info(f"City is {city}")
 
         phone_num = get_phone_number(driver)
@@ -338,7 +339,7 @@ def process_company_link(driver, name, link, source_name, source, category):
         
         scroll_to_end(driver)
 
-        reviews_data = extract_reviews(driver, name, link, phone_num, location, avg_rating, source_name, source, category)
+        reviews_data = extract_reviews(driver, name, link, phone_num, location, city, avg_rating, source_name, source, category)
 
         if len(reviews_data) == 0:
             logger.info(f"The company {name} have 0 reviews less than 4 rattings. Closing it .......")
