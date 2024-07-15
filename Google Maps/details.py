@@ -12,12 +12,14 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import NoSuchElementException, TimeoutException, ElementNotInteractableException, StaleElementReferenceException
+from dotenv import load_dotenv
 import os
-
+sys.stdout.reconfigure(encoding='utf-8')
+load_dotenv()
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger()
-webdriver_path = os.getenv(WEBDRIVER)
+webdriver_path = os.getenv("WEBDRIVER_PATH")
 
 
 if len(sys.argv) < 5:
@@ -76,7 +78,7 @@ def get_average_rating(driver):
     except NoSuchElementException:
         return "N/A"
 
-def extract_reviews(driver, company_name, company_link, phone_num, avg_rating, source_name, source, category):
+def extract_reviews(driver, company_name, company_link, phone_num, location, avg_rating, source_name, source, category):
     reviews_data = []
     try:
         wait = WebDriverWait(driver, 2)
@@ -107,7 +109,10 @@ def extract_reviews(driver, company_name, company_link, phone_num, avg_rating, s
                     review_description = review_description_elem.text if review_description_elem else "N/A"
                     logger.info(f"Review description: {review_description}")
 
-                    reviews_data.append((company_name, company_link, reviewer_name, review_date, review_star, review_description, phone_num, avg_rating, source_name, source, category))
+                    email="N/A"
+                    reviewer_cc="N/A"
+
+                    reviews_data.append((company_name, company_link, reviewer_name, reviewer_cc, review_date, review_star, review_description, phone_num, email, location, avg_rating, source_name, source, category))
                 else:
                     return reviews_data
 
@@ -289,6 +294,8 @@ def click_lowest_rating(driver, max_retries=3, delay=2):
 
 def process_company_link(driver, name, link, source_name, source, category):
     driver.get(link)
+    logger.info(f"**************************Opening link for: {name}")
+    logger.info("")
     try:
         wait = WebDriverWait(driver, 1)
         wait.until(EC.presence_of_element_located((By.XPATH, '//div[@class="m6QErb WNBkOb XiKgde " and @role="main"]')))
@@ -307,12 +314,13 @@ def process_company_link(driver, name, link, source_name, source, category):
 
         phone_num = get_phone_number(driver)
         logger.info(f"Phone number is {phone_num}")
+        
 
         avg_rating = get_average_rating(driver)
         logger.info(f"Average rating is {avg_rating}")
 
         if phone_num == "N/A":
-            logger.info(f"The company {name} don't have phone num.Closing it....."
+            logger.info(f"The company {name} don't have phone num.Closing it.....")
             return
 
         clicked = click_reviews_button(driver)
@@ -329,7 +337,7 @@ def process_company_link(driver, name, link, source_name, source, category):
         
         scroll_to_end(driver)
 
-        reviews_data = extract_reviews(driver, name, link, phone_num, avg_rating, source_name, source, category)
+        reviews_data = extract_reviews(driver, name, link, phone_num, location, avg_rating, source_name, source, category)
 
         if len(reviews_data) == 0:
             logger.info(f"The company {name} have 0 reviews less than 4 rattings. Closing it .......")
@@ -347,7 +355,7 @@ def process_company_link(driver, name, link, source_name, source, category):
     except Exception as e:
         logger.error(f"Error processing link {link}: {e}")
 
-
+# Main function
 def main():
     company_links = read_csv(csv_input_file_path)
     for row in company_links:

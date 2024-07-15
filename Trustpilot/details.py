@@ -1,3 +1,4 @@
+import re
 import csv
 import logging
 import time
@@ -14,11 +15,10 @@ from bs4 import BeautifulSoup
 import requests
 from selenium.common.exceptions import StaleElementReferenceException
 from dotenv import load_dotenv
-import os
-
+import requests
 # Load environment variables from .env file
 load_dotenv()
-
+sys.stdout.reconfigure(encoding='utf-8')
 
 
 # Setup logging
@@ -37,7 +37,7 @@ category = sys.argv[4]
 source_name = sys.argv[2]
 
 chrome_options = Options()
-# chrome_options.add_argument("--headless")  
+chrome_options.add_argument("--headless")  
 service = Service(webdriver_path)
 driver = webdriver.Chrome(service=service, options=chrome_options)
 
@@ -69,7 +69,7 @@ def is_pagination_button_interactable(driver):
     except:
         return False
 
-def extract_reviews_with_bs(driver,company_name, company_link, phone_num, avg_rating, Source_Name, source, category):
+def extract_reviews_with_bs(driver,company_name, company_link, phone_num, email, location, avg_rating, Source_Name, source, category):
     reviews_data = []
     try:
         soup = BeautifulSoup(driver.page_source, 'html.parser')
@@ -82,6 +82,14 @@ def extract_reviews_with_bs(driver,company_name, company_link, phone_num, avg_ra
             except AttributeError as e:
                 reviewer_name = "N/A"
                 logger.error(f"Reviewer name not found: {e}")
+
+            try:
+                # country code
+                reviewer_cc = review.find('div', class_='typography_body-m__xgxZ_ typography_appearance-subtle__8_H2l styles_detailsIcon__Fo_ua').span.text.strip()
+                logger.info(f"Reviewer cc: {reviewer_cc}")
+            except AttributeError as e:
+                reviewer_cc = "N/A"
+                logger.error(f"Reviewer cc not found: {e}")
 
             try:
                 review_date = review.find('div', class_='typography_body-m__xgxZ_ typography_appearance-subtle__8_H2l styles_datesWrapper__RCEKH').time.text.strip()
@@ -105,22 +113,23 @@ def extract_reviews_with_bs(driver,company_name, company_link, phone_num, avg_ra
                 review_description = "N/A"
                 logger.info("Review Description Not Found")
 
-            reviews_data.append((company_name, company_link, reviewer_name, review_date, review_star, review_description, phone_num, avg_rating, Source_Name, source, category))
+            reviews_data.append((company_name, company_link, reviewer_name, reviewer_cc, review_date, review_star, review_description, phone_num, email, location, avg_rating, Source_Name, source, category))
         
         logger.info(f"Extracted {len(reviews_data)} reviews.")
         
         if len(reviews_data) == 0:
             reviewer_name = "N/A"
-            review_date = "N/A"
+            review_date = ""
             review_star = "N/A"
+            reviewer_cc = "N/A"
             review_description = "N/A"
-            reviews_data.append((company_name, company_link, reviewer_name, review_date, review_star, review_description, phone_num, avg_rating,Source_Name, source, category))
+            reviews_data.append((company_name, company_link, reviewer_name, reviewer_cc, review_date, review_star, review_description, phone_num, email, location, avg_rating,Source_Name, source, category))
     except Exception as e:
         logger.error(f"Error finding review elements: {e}")
     
     return reviews_data
 
-def handle_pagination(driver, company_name, company_link, phone_num, avg_rating, Source_Name, source, category):
+def handle_pagination(driver, company_name, company_link, phone_num, email, location, avg_rating, Source_Name, source, category):
     all_reviews = []
 
     try:
@@ -132,7 +141,7 @@ def handle_pagination(driver, company_name, company_link, phone_num, avg_rating,
         logger.info("All reviews button not found or not clickable: {}".format(e))
 
     while True:
-        reviews = extract_reviews_with_bs(driver, company_name, company_link, phone_num, avg_rating, Source_Name, source, category)
+        reviews = extract_reviews_with_bs(driver, company_name, company_link, phone_num, email, location, avg_rating, Source_Name, source, category)
         all_reviews.extend(reviews)
 
         try:
@@ -166,41 +175,123 @@ def handle_pagination(driver, company_name, company_link, phone_num, avg_rating,
 
     return all_reviews
 
+# Define a function to validate email format
+def is_valid_email(email):
+    # Basic email regex pattern
+    pattern = r'^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$'
+    return re.match(pattern, email) is not None
+
+# Define a function to validate phone number format
+def is_valid_phone(phone):
+    # Pattern to match numbers and + character only
+    pattern = r'^\+?[\d\s\-/]+$'
+    return re.match(pattern, phone) is not None
+
 for name, link in links:
     logger.info(f"Opening link for: {name}")
 
-    driver.get(link)
-    try:
-        wait.until(EC.presence_of_element_located((By.XPATH, '//section[@class="styles_reviewsContainer__3_GQw"]')))
-        logger.info("Reviews section loaded.")
-
-        phone_num = "N/A"
-        try:
-            phone_num = driver.find_element(By.XPATH, '//address/ul/li[2]/a').text
-            logger.info(f"Phone number found: {phone_num}")
-        except Exception as e:
-            logger.info("Phone number not found.")
-
-        avg_rating = "N/A"
-        try:
-            avg_rating_element = driver.find_element(By.XPATH, '//span[@class="typography_heading-m__T_L_X typography_appearance-default__AAY17"]')
-            avg_rating = avg_rating_element.text.strip()
-            logger.info(f'Average rating is {avg_rating}')
-        except Exception as e:
-            if driver.find_element(By.XPATH, '//p[@class="typography_body-l__KUYFJ typography_appearance-default__AAY17"]').text.strip() == "0 total":
-                avg_rating = "0"
-            else:
-                logger.error(f"Average rating not found: {e}")
-
-        reviews = handle_pagination(driver, name, link, phone_num, avg_rating, source_name, source, category)
-
-        for review in reviews:
-            logger.info("**************")
-            logger.info(review)
-            logger.info("**************")
-
-    except Exception as e:
-        logger.error(f"Error processing link {link}: {e}")
+    if name == "Lizenzexperte.de":
+        logger.info(f"skipping for: {name}")
         continue
+    else:
+        # update link to fetch all reviews
+        link_with_param = link + "?languages=all&stars=1&stars=2&stars=3"
+        driver.get(link_with_param)
+
+        try:
+            wait.until(EC.presence_of_element_located((By.XPATH, '//section[@class="styles_reviewsContainer__3_GQw"]')))
+            logger.info("Reviews section loaded.")
+
+            # IDs of the checkboxes to check
+            # checkbox_ids = [
+            #     'star-filter-page-filter-one',
+            #     'star-filter-page-filter-two',
+            #     'star-filter-page-filter-three'
+            # ]
+
+            # try:
+            #     # checkbox = driver.find_element(By.XPATH, '//input[@type="checkbox"]')
+            #     # logger.info(f"Checkbox: {checkbox}")
+            #     for checkbox_id in checkbox_ids:
+            #         checkbox = driver.find_element(By.ID, checkbox_id)
+            #         if not checkbox.is_selected() and checkbox.is_enabled():
+            #             checkbox.click()
+            #         else:
+            #             logger.info(f"Checkbox with ID {checkbox_id} is either already selected or disabled.")
+            # except Exception as e:
+            #     logger.error(f"Error in checkbox logic: {e}")
+            
+            email = ""
+            try:
+                email = driver.find_element(By.XPATH, '//address//a[starts-with(@href, "mailto:")]').text
+                if is_valid_email(email):
+                    logger.info(f"Email found: {email}")
+                else:
+                    email = ""
+                    logger.info("Invalid email format.")
+            except Exception as e:
+                logger.info(f"Email not found:")
+
+            phone_num = "N/A"
+            try:
+                phone_num = driver.find_element(By.XPATH, '//a[starts-with(@href, "tel:")]').text
+                if is_valid_phone(phone_num):
+                    logger.info(f"Phone number found: {phone_num}")
+                else:
+                    phone_num = "N/A"
+                    logger.info(f"Invalid phone number format for category-: {category} and company link-: {link}")
+                    logger.info("skiping this company")
+                    logger.info("")
+                    continue
+            except Exception as e:
+                logger.info(f"Phone number not found for category-: {category} and company link-: {link}") 
+                logger.info("skiping this company")
+                logger.info("")
+                continue
+
+            location = "Germany"
+            try:
+                li_elements = driver.find_elements(By.XPATH, '//address/ul/li/ul/li')
+                # Extract the text content of each li element
+                locations = [li.text for li in li_elements]
+
+                # Join the list elements into a single string separated by commas
+                location_string = ', '.join(locations)
+
+                location = "Germany" if len(location_string) == 0 else location_string
+                logger.info(f"Location found: {location}")
+            except Exception as e:
+                logger.info("Location not found.")
+
+            avg_rating = "N/A"
+            try:
+                avg_rating_element = driver.find_element(By.XPATH, '//span[@class="typography_heading-m__T_L_X typography_appearance-default__AAY17"]')
+                avg_rating = avg_rating_element.text.strip()
+                logger.info(f'Average rating is {avg_rating}')
+            except Exception as e:
+                if driver.find_element(By.XPATH, '//p[@class="typography_body-l__KUYFJ typography_appearance-default__AAY17"]').text.strip() == "0 total":
+                    avg_rating = "0"
+                else:
+                    logger.error(f"Average rating not found: {e}")
+
+            reviews = handle_pagination(driver, name, link, phone_num, email, location, avg_rating, source_name, source, category)
+
+            response = requests.post(os.getenv("ENDPOINT"),json=reviews)
+
+            if response.status_code == 201:
+                response_data = response.json()
+                print("Data created successfully:")
+                print("******",response_data.get('success', False))
+            else:
+                print(f"Error {response.status_code}: {response.text}")
+
+            # for review in reviews:
+            #     logger.info("**************")
+            #     logger.info(review)
+            #     logger.info("**************")
+
+        except Exception as e:
+            logger.error(f"Error processing link {link}: {e}")
+            continue
 
 driver.quit()

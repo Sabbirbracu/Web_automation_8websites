@@ -12,10 +12,12 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.keys import Keys
+from dotenv import load_dotenv
 import os
 
-
-webdriver_path = os.getenv(WEBDRIVER)
+load_dotenv()
+# Path to your webdriver executable
+webdriver_path = os.getenv("WEBDRIVER_PATH")
 
 def generate_google_maps_url(category, location):
     base_url = 'https://www.google.com/maps/search/'
@@ -36,7 +38,7 @@ with open(json_file_path) as f:
 
 chrome_options = Options()
 # chrome_options.add_argument("user-data-dir=/Users/sabbirahmad/Library/Application Support/Google/Chrome/Default")  # Change to your Chrome profile path
-chrome_options.add_argument("--headless")  # Optional: Run Chrome in headless mode
+chrome_options.add_argument("--headless")  # Optional: Run Chrome in headless mode, i.e., without a UI
 chrome_options.add_argument("user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36")
 chrome_options.add_argument("--window-size=1920,1080")
 chrome_options.add_argument("--disable-gpu")

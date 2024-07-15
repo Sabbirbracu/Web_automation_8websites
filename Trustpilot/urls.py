@@ -38,7 +38,7 @@ json_file_path = os.getenv("CATEGORY_JSON_PATH")
 # Initialize Chrome web driver with existing user profile
 chrome_options = Options()
 # chrome_options.add_argument("/Users/sabbirahmad/Library/Application Support/Google/Chrome/Default")  # Change to your Chrome profile path
-# chrome_options.add_argument("--headless")  # Optional: Run Chrome in headless mode, i.e., without a UI
+chrome_options.add_argument("--headless")  # Optional: Run Chrome in headless mode, i.e., without a UI
 service = Service(webdriver_path)
 driver = webdriver.Chrome(service=service, options=chrome_options)
 
@@ -142,10 +142,10 @@ def main(driver, sub_category, location, Rattings):
     print(f"Total unique business items extracted: {len(all_business_data_list)}")
 
     csv_file_path = os.getenv("CSV_FILE_PATH")  # Assuming this returns a valid path as a string
-    sub_category = "example sub category"
+    file_name = "example sub category"
 
-    # Replace spaces with underscores in sub_category
-    sub_category_sanitized = sub_category.replace(' ', '_')
+    # Replace spaces with underscores in file_name
+    sub_category_sanitized = file_name.replace(' ', '_')
 
     # Join the paths
     full_path = os.path.join(csv_file_path, f"{sub_category_sanitized}.csv")
