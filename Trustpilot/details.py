@@ -15,7 +15,7 @@ from bs4 import BeautifulSoup
 import requests
 from selenium.common.exceptions import StaleElementReferenceException
 from dotenv import load_dotenv
-import requests
+
 # Load environment variables from .env file
 load_dotenv()
 sys.stdout.reconfigure(encoding='utf-8')

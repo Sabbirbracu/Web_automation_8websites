@@ -14,6 +14,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import NoSuchElementException, TimeoutException, ElementNotInteractableException, StaleElementReferenceException
 from dotenv import load_dotenv
 import os
+import requests
 sys.stdout.reconfigure(encoding='utf-8')
 load_dotenv()
 
@@ -109,7 +110,7 @@ def extract_reviews(driver, company_name, company_link, phone_num, location, avg
                     review_description = review_description_elem.text if review_description_elem else "N/A"
                     logger.info(f"Review description: {review_description}")
 
-                    email="N/A"
+                    email = ""
                     reviewer_cc="N/A"
 
                     reviews_data.append((company_name, company_link, reviewer_name, reviewer_cc, review_date, review_star, review_description, phone_num, email, location, avg_rating, source_name, source, category))
@@ -342,14 +343,21 @@ def process_company_link(driver, name, link, source_name, source, category):
         if len(reviews_data) == 0:
             logger.info(f"The company {name} have 0 reviews less than 4 rattings. Closing it .......")
             return
-            
-        
-        for review_data in reviews_data:
-            print(review_data)
+
+        # for review_data in reviews_data:
+        #     print(review_data)
         logging.info(f"Total review scrapped {len(reviews_data)}")
         
         logger.info(f"Processed link: {link}")
 
+        response = requests.post(os.getenv("ENDPOINT"),json=reviews_data)
+
+        if response.status_code == 201:
+            response_data = response.json()
+            print("Data created successfully:")
+            print("******",response_data.get('success', False))
+        else:
+            print(f"Error {response.status_code}: {response.text}")
     except TimeoutException:
         logger.error("Timed out waiting for the reviews section to load.")
     except Exception as e:
