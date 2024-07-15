@@ -311,7 +311,9 @@ def process_company_link(driver, name, link, source_name, source, category):
         avg_rating = get_average_rating(driver)
         logger.info(f"Average rating is {avg_rating}")
 
-        
+        if phone_num == "N/A":
+            return
+
         clicked = click_reviews_button(driver)
 
         if not clicked:
