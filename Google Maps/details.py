@@ -93,7 +93,7 @@ def extract_reviews(driver, company_name, company_link, phone_num, avg_rating, s
             try:
                 review_star_elem = review.find('span', class_='kvMYJc')
                 review_star = review_star_elem['aria-label'].split()[0] if review_star_elem else "N/A"
-                print(f"Review Star is {review_star}")
+                logger.info(f"Review Star is {review_star}")
                 if int(review_star) < 4:
                     reviewer_name_elem = review.find('div', class_='d4r55')
                     reviewer_name = reviewer_name_elem.text if reviewer_name_elem else "N/A"
