@@ -163,57 +163,57 @@ def scroll_to_end(driver):
                 driver.execute_script("arguments[0].scrollTop = arguments[0].scrollHeight", scrollable_div)
                 num += 1
                 driver.find_element(By.XPATH, '//div[@class="m6QErb DxyBCb kA9KIf dS8AEf XiKgde "]').send_keys(Keys.PAGE_DOWN)
-                print("scrolled")
+                logger.info("Scrolling ....")
                 time.sleep(0.7)
                 driver.find_element(By.XPATH, '//div[@class="m6QErb DxyBCb kA9KIf dS8AEf XiKgde "]').send_keys(Keys.PAGE_DOWN)
-                print("scrolled")
+                logger.info("Scrolling ....")
                 time.sleep(.7)
                 driver.find_element(By.XPATH, '//div[@class="m6QErb DxyBCb kA9KIf dS8AEf XiKgde "]').send_keys(Keys.PAGE_DOWN)
-                print("scrolled")
+                logger.info("Scrolling ....")
                 time.sleep(0.7)
                 driver.find_element(By.XPATH, '//div[@class="m6QErb DxyBCb kA9KIf dS8AEf XiKgde "]').send_keys(Keys.PAGE_DOWN)
-                print("scrolled")
+                logger.info("Scrolling ....")
                 time.sleep(0.7)
                 driver.find_element(By.XPATH, '//div[@class="m6QErb DxyBCb kA9KIf dS8AEf XiKgde "]').send_keys(Keys.PAGE_DOWN)
-                print("scrolled")
+                logger.info("Scrolling ....")
                 time.sleep(.7)
                 driver.find_element(By.XPATH, '//div[@class="m6QErb DxyBCb kA9KIf dS8AEf XiKgde "]').send_keys(Keys.PAGE_DOWN)
-                print("scrolled")
+                logger.info("Scrolling ....")
                 time.sleep(.7)
                 driver.find_element(By.XPATH, '//div[@class="m6QErb DxyBCb kA9KIf dS8AEf XiKgde "]').send_keys(Keys.PAGE_DOWN)
-                print("scrolled")
+                logger.info("Scrolling ....")
                 time.sleep(.7)
                 driver.find_element(By.XPATH, '//div[@class="m6QErb DxyBCb kA9KIf dS8AEf XiKgde "]').send_keys(Keys.PAGE_DOWN)
-                print("scrolled")
+                logger.info("Scrolling ....")
                 time.sleep(.7)
                 driver.find_element(By.XPATH, '//div[@class="m6QErb DxyBCb kA9KIf dS8AEf XiKgde "]').send_keys(Keys.PAGE_DOWN)
-                print("scrolled")
+                logger.info("Scrolling ....")
                 time.sleep(.7)
                 driver.find_element(By.XPATH, '//div[@class="m6QErb DxyBCb kA9KIf dS8AEf XiKgde "]').send_keys(Keys.PAGE_DOWN)
-                print("scrolled")
+                logger.info("Scrolling ....")
                 time.sleep(.7)
                 driver.find_element(By.XPATH, '//div[@class="m6QErb DxyBCb kA9KIf dS8AEf XiKgde "]').send_keys(Keys.PAGE_DOWN)
-                print("scrolled")
+                logger.info("Scrolling ....")
                 time.sleep(.7)
                 driver.find_element(By.XPATH, '//div[@class="m6QErb DxyBCb kA9KIf dS8AEf XiKgde "]').send_keys(Keys.PAGE_DOWN)
-                print("scrolled")
+                logger.info("Scrolling ....")
                 time.sleep(.7)
                 driver.find_element(By.XPATH, '//div[@class="m6QErb DxyBCb kA9KIf dS8AEf XiKgde "]').send_keys(Keys.PAGE_DOWN)
-                print("scrolled")
+                logger.info("Scrolling ....")
                 time.sleep(.7)
                 driver.find_element(By.XPATH, '//div[@class="m6QErb DxyBCb kA9KIf dS8AEf XiKgde "]').send_keys(Keys.PAGE_DOWN)
-                print("scrolled")
+                logger.info("Scrolling ....")
                 time.sleep(.7)
                 driver.find_element(By.XPATH, '//div[@class="m6QErb DxyBCb kA9KIf dS8AEf XiKgde "]').send_keys(Keys.PAGE_DOWN)
-                print("scrolled")
+                logger.info("Scrolling ....")
                 time.sleep(.7)
                 driver.find_element(By.XPATH, '//div[@class="m6QErb DxyBCb kA9KIf dS8AEf XiKgde "]').send_keys(Keys.PAGE_DOWN)
-                print("scrolled")
+                logger.info("Scrolling ....")
                 time.sleep(.7)
                 driver.find_element(By.XPATH, '//div[@class="m6QErb DxyBCb kA9KIf dS8AEf XiKgde "]').send_keys(Keys.PAGE_DOWN)
-                print("scrolled")
+                logger.info("Scrolling ....")
                 time.sleep(2)
-                
+            
                 new_height = driver.execute_script("return arguments[0].scrollHeight", scrollable_div)
 
                 logger.info(f"Scrolled {num} times and sleeping.")
@@ -224,7 +224,7 @@ def scroll_to_end(driver):
                     try:
                         review_star_elem = review.find_element(By.XPATH, './/span[@class="kvMYJc"]').get_attribute('aria-label')
                         review_star = review_star_elem.split()[0] if review_star_elem else "N/A"
-                        print(f"Review Star is {review_star}")
+                        logger.info(f"Review Star is {review_star}")
                         if int(review_star) > 3:
                             logger.info("Comes greater than 3 star review, Break the scrolling loop")
                             return 
@@ -253,8 +253,7 @@ def scroll_to_end(driver):
     if retry_count == max_retries:
         logger.error("Failed to find the scrollable container after maximum retries.")
         return False  
-
-    return False 
+    return False  
 
 
 def click_lowest_rating(driver, max_retries=3, delay=2):
@@ -319,12 +318,6 @@ def process_company_link(driver, name, link, source_name, source, category):
             logger.error("Failed to click the reviews button.")
             return
 
-        try:
-            review_section = wait.until(EC.presence_of_element_located((By.XPATH, '//div[@class="m6QErb XiKgde "]')))
-            logger.info("Review section loaded after clicking review button.")
-        except TimeoutException:
-            logger.error("Reviews did not load in time.")
-            return
 
         clicked_lowest = click_lowest_rating(driver)
         if not clicked_lowest:
