@@ -12,13 +12,18 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 import json
 import sys  # Add this import to get command-line arguments
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
+sys.stdout.reconfigure(encoding='utf-8')
 
 # Setup logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger()
 
 # Path to your webdriver executable
-webdriver_path = '/Users/sabbirahmad/Desktop/chromedriver'
+webdriver_path = os.getenv("WEBDRIVER_PATH")
 
 # Get the CSV file path from the command-line arguments
 if len(sys.argv) < 5:
@@ -100,14 +105,14 @@ def extract_reviews(driver, company_name, company_link, phone_num, avg_rating, s
                 logging.info(f'Review star rating is {review_star}')
             except Exception as e:
                 review_star = "N/A"
-                logger.error(f"Review star not found: {e}")
+                logger.error(f"Review star not found xxxx")
 
             try:
                 review_description = review.find_element(By.XPATH, './/div[@class="review-response"]/p').text
                 logger.info(f"The review is:--- {review_description}")
             except Exception as e:
                 review_description = "N/A"
-                logger.error(f"Review description not found: {e}")
+                logger.error(f"Review description not found xxxx") 
 
             reviews_data.append((company_name, company_link, reviewer_name, review_date, review_star, review_description, phone_num, avg_rating, source_name, source, category))
         logger.info(f"Extracted {len(reviews_data)} reviews.")
@@ -171,7 +176,7 @@ for name, link in links:
                 avg_rating = json.loads(data_analytics).get("rate", "N/A")
             logging.info(f'Average rating is {avg_rating}')
         except Exception as e:
-            logger.error(f"Average rating not found: {e}")
+            logger.error(f"Average rating not found xxxxxx")
 
         # Scroll down twice to load more reviews
         driver.find_element(By.TAG_NAME, 'body').send_keys(Keys.PAGE_DOWN)
