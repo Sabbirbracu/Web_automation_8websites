@@ -12,7 +12,7 @@ import urllib.parse
 import sys
 import logging
 import os
-
+logger = logging.getLogger()
 # Path to your webdriver executable
 webdriver_path = os.getenv("WEBDRIVER_PATH")
 
@@ -95,33 +95,33 @@ def main(category, location):
     wait = WebDriverWait(driver,3)
     try:
         wait.until(EC.presence_of_element_located((By.XPATH, '//*[@id="main-content"]')))
-        print("Main content loaded.")
+        logger.info("Main content loaded.")
     except Exception as e:
-        print(f"Error waiting for main content to load: {e}")
+        logger.info(f"Error waiting for main content to load: {e}")
         driver.quit()
         return
 
     all_business_data = {}
     while True:
         extract_business_links_and_names(driver, all_business_data)
-        print(f"So far total unique items: {len(all_business_data)}")
+        logger.info(f"So far total unique items: {len(all_business_data)}")
 
         if is_pagination_visible(driver) and is_pagination_button_interactable(driver):
-            print("Pagination button found and interactable. Clicking it.")
+            logger.info("Pagination button found and interactable. Clicking it.")
             try:
                 pagination_button = driver.find_element(By.XPATH, "//a[contains(@class, 'next')]")
                 pagination_button.click()
                 time.sleep(1)  # Wait for the next page to load
             except Exception as e:
-                print(f"Error clicking pagination button: {e}")
+                logger.info(f"Error clicking pagination button: {e}")
                 break
         else:
-            print("Pagination button not found or not interactable. Stopping pagination.")
+            logger.info("Pagination button not found or not interactable. Stopping pagination.")
             break
 
     # Convert the dictionary to a list of tuples
     all_business_data_list = list(all_business_data.items())
-    print(f"Total unique business items extracted: {len(all_business_data_list)}")
+    logger.info(f"Total unique business items extracted: {len(all_business_data_list)}")
     
     csv_file_path = os.getenv("CSV_FILE_PATH_yellowpage")  # Assuming this returns a valid path as a string
     file_name = "example sub category"
@@ -140,9 +140,9 @@ def main(category, location):
             writer.writerow(['Business Name', 'Business Link'])  # Write the header
             for name, link in all_business_data_list:
                 writer.writerow([name, link])
-        print(f"Links and names successfully saved to {csv_file_path}")
+        logger.info(f"Links and names successfully saved to {csv_file_path}")
     except Exception as e:
-        print(f"Error saving links and names to CSV: {e}")
+        logger.info(f"Error saving links and names to CSV: {e}")
 
     # Close the web driver
     driver.quit()
@@ -153,9 +153,9 @@ def main(category, location):
     # Call details.py with the CSV file path
     try:
         subprocess.run([python_executable, os.getenv("DETAIL_PATH_yellowpage"), csv_file_path, source_name, source, category], check=True)
-        print(f"new_details.py executed successfully with {csv_file_path}")
+        logger.info(f"new_details.py executed successfully with {csv_file_path}")
     except subprocess.CalledProcessError as e:
-        print(f"Error calling new_details.py: {e}")
+        logger.info(f"Error calling new_details.py: {e}")
 
 # Set the search location
 location = 'Germany'
