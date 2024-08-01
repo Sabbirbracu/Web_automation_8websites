@@ -55,5 +55,5 @@ output = {"Categories": categories}
 print(json.dumps(output, indent=4))
 
 # Optionally, save to a JSON file
-with open('CATEGORY_JSON_PATH_yellopage', 'w') as json_file:
+with open('CATEGORY_JSON_PATH_yellowpage', 'w') as json_file:
     json.dump(output, json_file, indent=4)
