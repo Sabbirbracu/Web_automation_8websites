@@ -11,9 +11,10 @@ from selenium.webdriver.support import expected_conditions as EC
 import urllib.parse
 import sys
 import logging
+import os
 
 # Path to your webdriver executable
-webdriver_path = '/Users/sabbirahmad/Desktop/chromedriver'
+webdriver_path = os.getenv("WEBDRIVER_PATH")
 
 # Function to generate the YellowPages search URL
 def generate_yellowpages_url(category, location):
@@ -23,15 +24,16 @@ def generate_yellowpages_url(category, location):
         'geo_location_terms': location
     }
     return f"{base_url}?{urllib.parse.urlencode(params)}"
+    
+json_file_path = os.getenv("CATEGORY_JSON_PATH_yellowpage")
 
 # Read categories from JSON file
-with open('/Users/sabbirahmad/YellowPage/category.json', 'r') as json_file:
+with open(json_file_path, 'r') as json_file:
     data = json.load(json_file)
     categories = data.get("Categories", [])
 
 # Initialize Chrome web driver with existing user profile
 chrome_options = Options()
-chrome_options.add_argument("/Users/sabbirahmad/Library/Application Support/Google/Chrome/Default")  # Change to your Chrome profile path
 chrome_options.add_argument("--headless")  # Optional: Run Chrome in headless mode, i.e., without a UI
 service = Service(webdriver_path)
 
@@ -121,8 +123,17 @@ def main(category, location):
     all_business_data_list = list(all_business_data.items())
     print(f"Total unique business items extracted: {len(all_business_data_list)}")
     
+    csv_file_path = os.getenv("CSV_FILE_PATH_yellowpage")  # Assuming this returns a valid path as a string
+    file_name = "example sub category"
+
+    # Replace spaces with underscores in file_name
+    sub_category_sanitized = file_name.replace(' ', '_')
+
+    # Join the paths
+    full_path = os.path.join(csv_file_path, f"{sub_category_sanitized}.csv")
+    
     # Save the links and names to a CSV file
-    csv_file_path = f"/Users/sabbirahmad/YellowPage/{category}.csv"
+    csv_file_path = full_path
     try:
         with open(csv_file_path, mode='w', newline='') as file:
             writer = csv.writer(file)
@@ -141,7 +152,7 @@ def main(category, location):
 
     # Call details.py with the CSV file path
     try:
-        subprocess.run([python_executable, '/Users/sabbirahmad/YellowPage/details_no_mysql.py', csv_file_path, source_name, source, category], check=True)
+        subprocess.run([python_executable, os.getenv("DETAIL_PATH_yellowpage"), csv_file_path, source_name, source, category], check=True)
         print(f"new_details.py executed successfully with {csv_file_path}")
     except subprocess.CalledProcessError as e:
         print(f"Error calling new_details.py: {e}")
