@@ -6,14 +6,17 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-
+import os
 # Setup logging
+
+# Load environment variables from .env file
+load_dotenv()
+
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger()
 
 # Path to your webdriver executable
-webdriver_path = '/Users/sabbirahmad/Desktop/chromedriver'
-
+webdriver_path = os.getenv("WEBDRIVER_PATH")
 # Set up the web driver
 service = Service(webdriver_path)
 options = Options()
@@ -52,5 +55,5 @@ output = {"Categories": categories}
 print(json.dumps(output, indent=4))
 
 # Optionally, save to a JSON file
-with open('/Users/sabbirahmad/YellowPage/category.json', 'w') as json_file:
+with open('CATEGORY_JSON_PATH_yellopage', 'w') as json_file:
     json.dump(output, json_file, indent=4)
