@@ -11,21 +11,17 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 import json
-import sys  # Add this import to get command-line arguments
+import sys  
 from dotenv import load_dotenv
 
-# Load environment variables from .env file
 load_dotenv()
 sys.stdout.reconfigure(encoding='utf-8')
 
-# Setup logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger()
 
-# Path to your webdriver executable
 webdriver_path = os.getenv("WEBDRIVER_PATH")
 
-# Get the CSV file path from the command-line arguments
 if len(sys.argv) < 5:
     logger.error("CSV file path not provided.")
     sys.exit(1)
@@ -34,22 +30,19 @@ source = sys.argv[3]
 category = sys.argv[4]
 source_name = sys.argv[2]
 
-# Initialize Chrome web driver
 chrome_options = Options()
 chrome_options.add_argument("--headless")  
 service = Service(webdriver_path)
 driver = webdriver.Chrome(service=service, options=chrome_options)
 
-# Open the input CSV file and read links
 with open(csv_input_file_path, mode='r') as file:
     csv_reader = csv.reader(file)
-    next(csv_reader)  # Skip header row
+    next(csv_reader) 
     links = list(csv_reader)
 
-# Initialize WebDriverWait
 wait = WebDriverWait(driver, 3)
 
-# Function to extract review information from the current page
+
 def extract_reviews(driver, company_name, company_link, phone_num, avg_rating, source_name, source, category):
     reviews_data = []
     try:
@@ -87,20 +80,13 @@ def extract_reviews(driver, company_name, company_link, phone_num, avg_rating, s
             }
 
             try:
-                # Locate the review star container
                 review_star_container = review.find_element(By.XPATH, './/div[@class="result-ratings overall"]/div[contains(@class, "rating-indicator")]')
-                
-                # Extract the class attribute
                 rating_class = review_star_container.get_attribute("class")
-                
-                # Split the class names and find the rating word
                 rating_word = rating_class.split()
                 if len(rating_word) >2:
                     rating_words = rating_word[1] + rating_word[2]
                 else:
                     rating_words = rating_word[1]
-                
-                # Convert the rating word to a number using the rating_map
                 review_star = rating_map.get(rating_words, "N/A")
                 logging.info(f'Review star rating is {review_star}')
             except Exception as e:
@@ -126,7 +112,6 @@ def extract_reviews(driver, company_name, company_link, phone_num, avg_rating, s
         logger.error(f"Error finding review elements: {e}")
     return reviews_data
 
-# Function to handle pagination
 def handle_pagination(driver, restaurant_name, restaurant_link, phone_num, avg_rating, source_name, source, category):
     all_reviews = []
     while True:
@@ -137,36 +122,29 @@ def handle_pagination(driver, restaurant_name, restaurant_link, phone_num, avg_r
                 next_button = driver.find_element(By.XPATH, '//div[@class="pagination"]/span[@class="next"]/a')
                 logging.info("found the next button")
                 next_button.click()
-                time.sleep(4)  # Adjust the sleep time as necessary
+                time.sleep(4)
         except Exception as e:
             logger.info("No more pages found.")
             break
     return all_reviews
 
-# Iterate over links and extract review data
 for name, link in links:
     logger.info(f"Opening link for: {name}")
     driver.get(link)
     try:
-        # Check if the page is not available
         if "You may need permission to access this page" in driver.page_source:
             logger.error("Permission needed to access this page. Stopping execution.")
             break
-
-        # Wait for the reviews to load
         wait.until(EC.presence_of_element_located((By.XPATH, '//div[@id= "reviews-container"]')))
         logger.info("Reviews section loaded.")
-        
-        # Initialize phone_num to handle cases where it may not be found
         phone_num = "N/A"
         try:
             phone_num_element = driver.find_element(By.XPATH, '//div[@id="listing-card"]/section[@class="inner-section"]/a[@class="phone dockable"]/span[@class="full"]')
-            phone_num = phone_num_element.text[:50]  # Ensure within VARCHAR(50)
+            phone_num = phone_num_element.text[:50]  
             logging.info(f"Got the phone number and the phone number is {phone_num}")
         except Exception as e:
             logger.error(f"Phone number not found: {e}")
 
-        # Extract the average rating
         avg_rating = "N/A"
         try:
             avg_rating_element = driver.find_element(By.XPATH, '//a[@title="Star Ratings"]')
@@ -178,18 +156,15 @@ for name, link in links:
         except Exception as e:
             logger.error(f"Average rating not found xxxxxx")
 
-        # Scroll down twice to load more reviews
         driver.find_element(By.TAG_NAME, 'body').send_keys(Keys.PAGE_DOWN)
         time.sleep(1)
         driver.find_element(By.TAG_NAME, 'body').send_keys(Keys.PAGE_DOWN)
         time.sleep(1)
 
-        # Handle pagination and extract review data
         reviews = handle_pagination(driver, name, link, phone_num, avg_rating, source_name, source, category)
         
-        # Print the review data
         for review in reviews:
-            print(review)
+            logging.info(review)
 
     except Exception as e:
         logger.error(f"Error processing link {link}: {e}")
