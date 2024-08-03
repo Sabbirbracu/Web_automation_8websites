@@ -15,10 +15,7 @@ import os
 
 logger = logging.getLogger()
 
-# Path to your webdriver executable
 webdriver_path = os.getenv("WEBDRIVER_PATH")
-
-# Function to generate the Yelp search URL
 def generate_yelp_url(category, location):
     base_url = 'https://www.yelp.com/search'
     params = {
@@ -27,7 +24,6 @@ def generate_yelp_url(category, location):
     }
     return f"{base_url}?{urllib.parse.urlencode(params)}"
 
-# Function to check if pagination element is present and visible
 def is_pagination_visible(driver):
     try:
         pagination = driver.find_element(By.XPATH, '//div[@aria-label="Pagination navigation"]')
@@ -35,7 +31,6 @@ def is_pagination_visible(driver):
     except:
         return False
 
-# Function to check if pagination button is interactable
 def is_pagination_button_interactable(driver):
     try:
         pagination_button = driver.find_element(By.XPATH, "//*/li/div[@aria-label='Pagination navigation']//button")
@@ -43,7 +38,6 @@ def is_pagination_button_interactable(driver):
     except:
         return False
 
-# Function to extract business links and names from the current page
 def extract_business_links_and_names(driver, business_dict):
     try:
         business_elements = driver.find_elements(By.XPATH,
@@ -66,7 +60,6 @@ def extract_business_links_and_names(driver, business_dict):
     except Exception as e:
         print(f"Error extracting business data: {e}")
 
-# Main script to handle pagination and data extraction
 def main(driver, category, location, source, source_name):
     url = generate_yelp_url(category, location)
     driver.get(url)
@@ -114,13 +107,10 @@ def main(driver, category, location, source, source_name):
     csv_file_path = os.getenv("CSV_FILE_PATH_yelp")  # Assuming this returns a valid path as a string
     file_name = "example sub category"
 
-    # Replace spaces with underscores in file_name
     sub_category_sanitized = file_name.replace(' ', '_')
 
-    # Join the paths
     full_path = os.path.join(csv_file_path, f"{sub_category_sanitized}.csv")
     
-    # Save the links and names to a CSV file
     csv_file_path = full_path
     
     try:
@@ -142,11 +132,8 @@ def main(driver, category, location, source, source_name):
     except subprocess.CalledProcessError as e:
         print(f"Error calling details.py: {e}")
 
-# Load categories from the category.json file and process each one
-
 json_file_path = os.getenv("CATEGORY_JSON_PATH_yelp")
 
-# Read categories from JSON file
 with open(json_file_path, 'r') as json_file:
     data = json.load(json_file)
     categories = data.get("Categories", [])
@@ -156,7 +143,7 @@ source = 'https://www.yelp.com'
 source_name = "Yelp"
 
 chrome_options = Options()
-chrome_options.add_argument("--headless")  # Run Chrome in headless mode
+chrome_options.add_argument("--headless") 
 service = Service(webdriver_path)
 driver = webdriver.Chrome(service=service, options=chrome_options)
 
