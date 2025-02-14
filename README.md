@@ -45,3 +45,10 @@ pip install -r requirements.txt  # Install dependencies
 python urls.py                    # Start URL scraping
 python details.py                  # Extract business details
 ```
+## 📢 Note  
+- Ensure **Chromedriver** is installed and matches your Chrome version.  
+- Adjust Selenium wait times for optimal performance based on website speed.  
+- Some websites may require **proxy rotation** or **CAPTCHA handling** for large-scale scraping.  
+
+## 📜 License  
+This project is intended for **educational purposes**. Ensure compliance with website **terms of service** before scraping.  
